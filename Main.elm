@@ -43,6 +43,7 @@ type alias Keys =
 
 type alias Asteroid =
     { position : Coords
+    , velocity : Coords
     }
 
 
@@ -74,8 +75,8 @@ init =
             , right = Unpressed
             }
       , asteroids =
-            [ { position = { x = 70, y = 30 } }
-            , { position = { x = 20, y = 50 } }
+            [ { position = { x = 70, y = 30 }, velocity = { x = 5, y = 2 } }
+            , { position = { x = 20, y = 50 }, velocity = { x = -2, y = 6 } }
             ]
       , isGameOver = False
       }
@@ -258,7 +259,24 @@ handleTimeStep diff model =
         overlaps a b =
             (sqrt (((a.x - b.x) ^ 2) + ((a.y - b.y) ^ 2))) < 10
     in
-        { model | player = newPlayer, isGameOver = List.foldl (\a b -> b || overlaps a.position newPosition) model.isGameOver model.asteroids }
+        { model
+            | player = newPlayer
+            , isGameOver =
+                List.foldl
+                    (\a b -> b || overlaps a.position newPosition)
+                    model.isGameOver
+                    model.asteroids
+            , asteroids =
+                List.map
+                    (\a ->
+                        { a
+                            | position =
+                                updatePosition a.position a.velocity
+                                    |> wrapPosition
+                        }
+                    )
+                    model.asteroids
+        }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
