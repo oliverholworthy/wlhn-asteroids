@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import Random
 import AnimationFrame
 import Char
 import Html
@@ -60,6 +61,22 @@ type Msg
     | KeyChange Key KeyState
     | TimeStep Time
     | ResetGame
+    | AddRoids (List Asteroid)
+
+
+positionGenerator =
+    Random.float (-1 * mapSize) mapSize
+
+
+velocityGenerator =
+    Random.float -5 5
+
+
+asteroidGenerator : Random.Generator Asteroid
+asteroidGenerator =
+    Random.map2 Asteroid
+        (Random.map2 Coords positionGenerator positionGenerator)
+        (Random.map2 Coords velocityGenerator velocityGenerator)
 
 
 init : ( Model, Cmd Msg )
@@ -75,12 +92,10 @@ init =
             , right = Unpressed
             }
       , asteroids =
-            [ { position = { x = 70, y = 30 }, velocity = { x = 5, y = 2 } }
-            , { position = { x = 20, y = 50 }, velocity = { x = -2, y = 6 } }
-            ]
+            []
       , isGameOver = False
       }
-    , Cmd.none
+    , Random.generate AddRoids (Random.list 5 asteroidGenerator)
     )
 
 
@@ -263,7 +278,7 @@ handleTimeStep diff model =
             | player = newPlayer
             , isGameOver =
                 List.foldl
-                    (\a b -> b || overlaps a.position newPosition)
+                    (\a -> (||) (overlaps a.position newPosition))
                     model.isGameOver
                     model.asteroids
             , asteroids =
@@ -281,22 +296,21 @@ handleTimeStep diff model =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    let
-        newModel =
-            case msg of
-                KeyChange key keystate ->
-                    handleKeyChange key keystate model
+    case msg of
+        KeyChange key keystate ->
+            handleKeyChange key keystate model ! []
 
-                TimeStep diff ->
-                    handleTimeStep diff model
+        TimeStep diff ->
+            handleTimeStep diff model ! []
 
-                ResetGame ->
-                    Tuple.first init
+        ResetGame ->
+            init
 
-                Noop ->
-                    model
-    in
-        ( newModel, Cmd.none )
+        Noop ->
+            model ! []
+
+        AddRoids roids ->
+            { model | asteroids = roids } ! []
 
 
 keyCodeToMsg : KeyState -> Keyboard.KeyCode -> Msg
@@ -319,7 +333,10 @@ keyCodeToMsg keystate keyCode =
                 KeyChange Left keystate
 
             13 ->
-                ResetGame
+                if keystate == Pressed then
+                    ResetGame
+                else
+                    Noop
 
             _ ->
                 Noop
