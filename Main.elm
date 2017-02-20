@@ -41,9 +41,16 @@ type alias Keys =
     }
 
 
+type alias Asteroid =
+    { position : Coords
+    }
+
+
 type alias Model =
     { player : Player
     , keys : Keys
+    , asteroids : List Asteroid
+    , isGameOver : Bool
     }
 
 
@@ -51,6 +58,7 @@ type Msg
     = Noop
     | KeyChange Key KeyState
     | TimeStep Time
+    | ResetGame
 
 
 init : ( Model, Cmd Msg )
@@ -65,6 +73,11 @@ init =
             , left = Unpressed
             , right = Unpressed
             }
+      , asteroids =
+            [ { position = { x = 70, y = 30 } }
+            , { position = { x = 20, y = 50 } }
+            ]
+      , isGameOver = False
       }
     , Cmd.none
     )
@@ -86,6 +99,20 @@ viewBackground =
         []
 
 
+viewAsteroid asteroid =
+    circle
+        [ cx (toString asteroid.position.x)
+        , cy (toString asteroid.position.y)
+        , r "5"
+        , Svg.Attributes.style "fill:red"
+        ]
+        []
+
+
+viewAsteroids asteroids =
+    g [] (List.map viewAsteroid asteroids)
+
+
 viewPlayer player =
     circle
         [ cx (toString player.position.x)
@@ -99,14 +126,18 @@ viewPlayer player =
 view : Model -> Html.Html Msg
 view model =
     Html.div []
-        [ svg
-            [ width "800"
-            , height "600"
-            , viewBox "0 0 120 120"
-            ]
-            [ viewBackground
-            , viewPlayer model.player
-            ]
+        [ if model.isGameOver then
+            Html.h1 [] [ text "GAME OVER" ]
+          else
+            svg
+                [ width "800"
+                , height "600"
+                , viewBox "0 0 120 120"
+                ]
+                [ viewBackground
+                , viewAsteroids model.asteroids
+                , viewPlayer model.player
+                ]
         ]
 
 
@@ -223,8 +254,11 @@ handleTimeStep diff model =
 
         newPlayer =
             { player | velocity = newVelocity, position = newPosition }
+
+        overlaps a b =
+            (sqrt (((a.x - b.x) ^ 2) + ((a.y - b.y) ^ 2))) < 10
     in
-        { model | player = newPlayer }
+        { model | player = newPlayer, isGameOver = List.foldl (\a b -> b || overlaps a.position newPosition) model.isGameOver model.asteroids }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -237,6 +271,9 @@ update msg model =
 
                 TimeStep diff ->
                     handleTimeStep diff model
+
+                ResetGame ->
+                    Tuple.first init
 
                 Noop ->
                     model
@@ -262,6 +299,9 @@ keyCodeToMsg keystate keyCode =
 
             37 ->
                 KeyChange Left keystate
+
+            13 ->
+                ResetGame
 
             _ ->
                 Noop
