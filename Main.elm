@@ -315,31 +315,27 @@ update msg model =
 
 keyCodeToMsg : KeyState -> Keyboard.KeyCode -> Msg
 keyCodeToMsg keystate keyCode =
-    let
-        _ =
-            Debug.log (toString keyCode) 1
-    in
-        case keyCode of
-            40 ->
-                KeyChange Down keystate
+    case keyCode of
+        40 ->
+            KeyChange Down keystate
 
-            38 ->
-                KeyChange Up keystate
+        38 ->
+            KeyChange Up keystate
 
-            39 ->
-                KeyChange Right keystate
+        39 ->
+            KeyChange Right keystate
 
-            37 ->
-                KeyChange Left keystate
+        37 ->
+            KeyChange Left keystate
 
-            13 ->
-                if keystate == Pressed then
-                    ResetGame
-                else
-                    Noop
-
-            _ ->
+        13 ->
+            if keystate == Pressed then
+                ResetGame
+            else
                 Noop
+
+        _ ->
+            Noop
 
 
 subscriptions : Model -> Sub Msg
